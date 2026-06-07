@@ -1,0 +1,989 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">刷题库</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+        }
+
+        .home-module {
+            margin: 30px 0;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .home-module:last-child {
+            border-bottom: none;
+        }
+        .home-title {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .module-title {
+            font-size: 20px;
+            color: #34495e;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+            min-width: 200px;
+            margin: 5px;
+        }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-primary:hover { background: #2980b9; }
+        .btn-warning { background: #e74c3c; color: white; }
+        .btn-warning:hover { background: #c0392b; }
+        .btn-danger { background: #e67e22; color: white; }
+        .btn-danger:hover { background: #d35400; }
+
+        .chapter-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: default;
+            user-select: none;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .chapter-item .drag-handle {
+            cursor: grab;
+            font-size: 18px;
+            color: #999;
+            padding: 4px;
+            line-height: 1;
+        }
+        .chapter-item .drag-handle:active {
+            cursor: grabbing;
+        }
+        .chapter-item.dragging {
+            opacity: 0.4;
+        }
+        .chapter-item.drag-over {
+            outline: 2px dashed #3498db;
+            outline-offset: 4px;
+            border-radius: 8px;
+        }
+        .section-list {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .delete-box {
+            text-align: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .delete-select {
+            padding: 10px;
+            width: 300px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .preview-box {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin: 15px 0;
+            text-align: left;
+        }
+        .import-box {
+            text-align: center;
+            padding: 20px;
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        #fileInput {
+            margin: 10px 0;
+        }
+        .tip {
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .success { color: #2ecc71; }
+        .error { color: #e74c3c; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        .btn-clear-record { padding: 6px 12px; background: #e67e22; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap; } .btn-clear-record:hover { background: #d35400; }
+        .back-btn {
+            padding: 6px 15px;
+            background: #95a5a6; color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .title { font-size: 22px; color: #2c3e50; }
+        .progress { color: #e67e22; font-weight: bold; font-size: 18px; }
+
+        .question-en { font-size: 18px; line-height: 1.6; color: #2d3436; margin-bottom: 10px; font-weight: 500; }
+        .question-cn {
+            font-size: 17px; line-height: 1.6; margin-bottom: 30px; cursor: pointer;
+            position: relative; color: transparent; transition: color 0.3s;
+        }
+        .question-cn::after {
+            content: ''; position: absolute; left:0; top:0; width:100%; height:100%;
+            background: #fff176; border-radius:4px; transition: opacity 0.3s;
+        }
+        .question-cn.active { color: #636e72; }
+        .question-cn.active::after { opacity: 0; }
+
+        .options { display: flex; flex-direction: column; gap:15px; margin-bottom:40px; }
+        .option-item {
+            display: flex; align-items: center; font-size:16px; padding:12px 15px;
+            background: #f8f9fa; border-radius:8px; gap:20px; transition: all 0.3s;
+        }
+        .opt-en { width: 45%; color: #2c3e50; }
+        .opt-cn {
+            width: 45%; position: relative; color: transparent; transition: color 0.3s; cursor: pointer;
+        }
+        .opt-cn::after {
+            content: ''; position: absolute; left:0; top:0; width:100%; height:100%;
+            background: #fff176; border-radius:4px; transition: opacity 0.3s;
+        }
+        .opt-cn.active { color: #2c3e50; }
+        .opt-cn.active::after { opacity: 0; }
+        .option-click { cursor: pointer; }
+        .option-click:hover { background: #eef2f5; }
+        /* 核心颜色修改：正确答案绿色，用户选错的答案红色 */
+        .option-selected { background: #d6eaf8 !important; }
+        .option-correct { background: #2ecc71 !important; color: white !important; }
+        .option-wrong { background: #ff4444 !important; color: white !important; }
+
+        /* 答案区域：默认隐藏，选择后显示 */
+        .answer-footer {
+            display: none;
+            align-items: center; justify-content: center; gap:15px;
+            text-align: center; padding:15px; border-top:2px solid #eee;
+            font-size:18px; font-weight: bold; color: #2c3e50;
+        }
+        .toggle-all-btn {
+            padding:6px 12px; background: #9b59b6; color:white; border:none;
+            border-radius:6px; cursor: pointer; font-size:14px;
+        }
+        .empty-tip {
+            text-align: center; color: #7f8c8d; font-size:18px; padding:40px 0;
+        }
+        .wrong-count {
+            color: #ff4444;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+
+        /* 缩略图面板样式 */
+        .thumbnail-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #8e44ad;
+            color: white;
+            font-size: 24px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 999;
+        }
+        .thumbnail-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .thumbnail-modal.active {
+            display: flex;
+        }
+        .thumbnail-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .thumbnail-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        .thumbnail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
+        }
+        .thumbnail-item {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .thumb-unfinish { background: #bdc3c7; color: white; }
+        .thumb-correct { background: #2ecc71; color: white; }
+        .thumb-wrong { background: #ff4444; color: white; }
+        .thumb-current { border: 3px solid #f39c12; }
+        .close-thumb {
+            display: block;
+            margin: 20px auto 0;
+            padding: 8px 25px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* 切换提示 */
+        .switch-tip {
+            text-align: center;
+            color: #7f8c8d;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        .home-title:hover::
+            outline: 1px dashed #999;
+            cursor: text;
+        }
+        .home-title:focus::
+            outline: 2px solid #3498db;
+            background: #fff;
+        }
+    </style>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+</head>
+<body>
+    <!-- 首页 -->
+    <div id="homeView" class="view active container">
+        <h1 class="home-title" id="siteTitle" title="双击修改标题">刷题库</h1>
+        <div class="home-module">
+            <h2 class="module-title">📖 章节选择</h2>
+            <div class="section-list" id="sectionContainer"></div>
+        </div>
+        <div class="home-module">
+            <h2 class="module-title">📚 错题库</h2>
+            <div style="text-align: center;">
+                <button class="btn btn-warning" onclick="startWrongPractice()">进入错题库刷题</button><span class="wrong-count-badge" id="wrongCountBadge" style="display:none;margin-left:10px;background:#e74c3c;color:white;padding:4px 12px;border-radius:12px;font-size:14px;"></span>
+                <p class="tip error">规则：答对3次自动移除错题</p>
+            </div>
+        </div>
+        <div class="home-module">
+            <h2 class="module-title">🗑️ 章节删除</h2>
+            <div class="delete-box">
+                <select id="deleteSelect" class="delete-select" onchange="previewDeleteChapter()">
+                    <option value="">请选择要删除的章节</option>
+                </select>
+                <div class="preview-box" id="deletePreview">预览内容：请选择章节</div>
+                <button class="btn btn-danger" onclick="deleteChapter()">确认删除章节</button>
+            </div>
+        </div>
+        <div class="home-module">
+            <h2 class="module-title">📤 章节导入（TXT文本 / Word文档）</h2>
+            <div class="import-box">
+                <p class="tip error">支持 .txt / .docx 格式 | 文件名=章节名</p>
+                <input type="file" id="fileInput" accept=".docx,.txt" />
+                <div id="importTip" class="tip success"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 常规刷题页面 -->
+    <div id="practiceView" class="view container">
+        <div class="header">
+            <button class="back-btn" onclick="backToHome()">← 返回首页</button>
+            <h2 class="title" id="chapterTitle">章节刷题</h2>
+            <div class="progress" id="progress">第0题 | 0/0</div><button class="btn-clear-record" onclick="clearPracticeRecord()" title="清空本章做题记录（不影响错题库）">🔄 清空做题记录</button>
+        </div>
+        <div class="switch-tip">💡 电脑按 ← → 方向键 / 手机左右滑动 切换题目</div>
+        <div class="question-en" id="qEn"></div>
+        <div class="question-cn" id="qCn"></div>
+        <div class="options" id="optionsBox"></div>
+        <div class="answer-footer" id="answerFooter">
+            ✅ 正确答案：<span id="correctAns"></span>
+            <button class="toggle-all-btn" id="toggleAllBtn">一键显示/隐藏中文</button>
+        </div>
+        <button class="thumbnail-btn" onclick="openThumbnail()">📋</button>
+    </div>
+
+    <!-- 错题库刷题页面 -->
+    <div id="wrongPracticeView" class="view container">
+        <div class="header">
+            <button class="back-btn" onclick="backToHome()">← 返回首页</button>
+            <h2 class="title">📚 错题库刷题</h2>
+            <div class="progress" id="wrongProgress">第0题 | 0/0</div>
+        </div>
+        <div class="switch-tip">💡 答对3次自动移除 | 方向键/滑动切换题目</div>
+        <div class="question-en" id="wrongQEn"></div>
+        <div class="question-cn" id="wrongQCn"></div>
+        <div class="options" id="wrongOptionsBox"></div>
+        <div class="answer-footer" id="wrongAnswerFooter">
+            ✅ 正确答案：<span id="wrongCorrectAns"></span>
+            <span class="wrong-count" id="correctCountTip">当前答对次数：0/3</span>
+            <button class="toggle-all-btn" id="toggleWrongAllBtn">一键显示/隐藏中文</button>
+        </div>
+    </div>
+
+    <!-- 题目缩略图弹窗 -->
+    <div class="thumbnail-modal" id="thumbnailModal">
+        <div class="thumbnail-box">
+            <h3 class="thumbnail-title">题目进度总览（点击跳题）</h3>
+            <div class="thumbnail-grid" id="thumbnailGrid"></div>
+            <button class="close-thumb" onclick="closeThumbnail()">关闭</button>
+        </div>
+    </div>
+
+<script>
+    // 第一章84题完整题库
+    const defaultBank = {
+        "第1章": [
+            {en:"What is data?|什么是数据？",options:[{en:"Information|信息"},{en:"Facts|事实"},{en:"Numbers|数字"},{en:"Words|文字"}],answer:"B",id:101,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a population?|什么是总体？",options:[{en:"A sample|样本"},{en:"All items of interest|所有研究对象"},{en:"A part|部分"},{en:"A table|表格"}],answer:"B",id:102,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a sample?|什么是样本？",options:[{en:"A whole group|整个群体"},{en:"A subset of a population|总体的子集"},{en:"A type of data|一种数据"},{en:"A graph|图表"}],answer:"B",id:103,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Which is quantitative data?|哪个是定量数据？",options:[{en:"Color|颜色"},{en:"Height|身高"},{en:"Gender|性别"},{en:"Brand|品牌"}],answer:"B",id:104,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Which is qualitative data?|哪个是定性数据？",options:[{en:"Weight|体重"},{en:"Age|年龄"},{en:"Type|类型"},{en:"Price|价格"}],answer:"C",id:105,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is statistics?|什么是统计学？",options:[{en:"Study of numbers|数字研究"},{en:"Study of data|数据研究"},{en:"Study of graphs|图表研究"},{en:"Study of samples|样本研究"}],answer:"B",id:106,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a variable?|什么是变量？",options:[{en:"A fixed value|固定值"},{en:"A changing characteristic|变化的特征"},{en:"A sample|样本"},{en:"A population|总体"}],answer:"B",id:107,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Discrete data is|离散数据是",options:[{en:"Measurable|可测量"},{en:"Countable|可计数"},{en:"Infinite|无限的"},{en:"Continuous|连续的"}],answer:"B",id:108,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Continuous data is|连续数据是",options:[{en:"Countable|可计数"},{en:"Measurable|可测量"},{en:"Integer|整数"},{en:"Categorical|分类的"}],answer:"B",id:109,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a census?|什么是普查？",options:[{en:"Sample survey|抽样调查"},{en:"Study of entire population|研究全部总体"},{en:"Data collection|数据收集"},{en:"Data analysis|数据分析"}],answer:"B",id:110,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Primary data is|原始数据是",options:[{en:"Collected by others|他人收集"},{en:"Collected by yourself|自己收集"},{en:"Published data|发布数据"},{en:"Old data|旧数据"}],answer:"B",id:111,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Secondary data is|二手数据是",options:[{en:"Collected by yourself|自己收集"},{en:"Collected by others|他人收集"},{en:"Raw data|原始数据"},{en:"New data|新数据"}],answer:"B",id:112,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Which is a parameter?|哪个是参数？",options:[{en:"Sample mean|样本均值"},{en:"Population mean|总体均值"},{en:"Sample median|样本中位数"},{en:"Sample mode|样本众数"}],answer:"B",id:113,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Which is a statistic?|哪个是统计量？",options:[{en:"Population mean|总体均值"},{en:"Sample mean|样本均值"},{en:"Population variance|总体方差"},{en:"Population total|总体总量"}],answer:"B",id:114,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Nominal data is|定类数据是",options:[{en:"Ranked|排序的"},{en:"Categorized|分类的"},{en:"Measured|测量的"},{en:"Counted|计数的"}],answer:"B",id:115,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Ordinal data is|定序数据是",options:[{en:"No order|无顺序"},{en:"Ranked|排序的"},{en:"Measured|测量的"},{en:"Continuous|连续的"}],answer:"B",id:116,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Interval data has|定距数据有",options:[{en:"True zero|绝对零点"},{en:"Equal intervals|相等间隔"},{en:"No order|无顺序"},{en:"Only categories|仅分类"}],answer:"B",id:117,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Ratio data has|定比数据有",options:[{en:"No zero|无零点"},{en:"True zero|绝对零点"},{en:"No order|无顺序"},{en:"Only ranks|仅排序"}],answer:"B",id:118,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is raw data?|什么是原始数据？",options:[{en:"Organized data|整理后数据"},{en:"Unorganized data|未整理数据"},{en:"Grouped data|分组数据"},{en:"Summary data|汇总数据"}],answer:"B",id:119,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is grouped data?|什么是分组数据？",options:[{en:"Unorganized|未整理"},{en:"Organized into groups|分组整理"},{en:"Single values|单个值"},{en:"Raw data|原始数据"}],answer:"B",id:120,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Frequency means|频数意味着",options:[{en:"Percentage|百分比"},{en:"Number of occurrences|出现次数"},{en:"Ratio|比率"},{en:"Average|平均值"}],answer:"B",id:121,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Relative frequency is|相对频数是",options:[{en:"Count|计数"},{en:"Frequency/total|频数/总数"},{en:"Sum|总和"},{en:"Average|均值"}],answer:"B",id:122,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a class interval?|什么是组距？",options:[{en:"Class width|组的宽度"},{en:"Class midpoint|组中值"},{en:"Class limit|组限"},{en:"Frequency|频数"}],answer:"A",id:123,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Class midpoint is|组中值是",options:[{en:"(Lower+Upper)/2|(下限+上限)/2"},{en:"Upper limit|上限"},{en:"Lower limit|下限"},{en:"Class width|组距"}],answer:"A",id:124,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a bar chart used for?|柱状图用于",options:[{en:"Continuous data|连续数据"},{en:"Categorical data|分类数据"},{en:"Time series|时间序列"},{en:"Frequency curve|频数曲线"}],answer:"B",id:125,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a histogram used for?|直方图用于",options:[{en:"Categorical data|分类数据"},{en:"Continuous data|连续数据"},{en:"Nominal data|定类数据"},{en:"Ordinal data|定序数据"}],answer:"B",id:126,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a pie chart used for?|饼图用于",options:[{en:"Trends|趋势"},{en:"Proportions|比例"},{en:"Distributions|分布"},{en:"Correlations|相关"}],answer:"B",id:127,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a line graph used for?|折线图用于",options:[{en:"Categories|分类"},{en:"Time trends|时间趋势"},{en:"Parts|部分"},{en:"Groups|分组"}],answer:"B",id:128,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Mean is the|均值是",options:[{en:"Middle value|中间值"},{en:"Average|平均值"},{en:"Most frequent|最频繁"},{en:"Range|极差"}],answer:"B",id:129,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Median is the|中位数是",options:[{en:"Average|均值"},{en:"Middle value|中间值"},{en:"Most frequent|众数"},{en:"Total|总和"}],answer:"B",id:130,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Mode is the|众数是",options:[{en:"Average|均值"},{en:"Most frequent value|最频繁值"},{en:"Middle value|中位数"},{en:"Range|极差"}],answer:"B",id:131,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Range is|极差是",options:[{en:"Max-Min|最大值-最小值"},{en:"Average|均值"},{en:"Middle value|中位数"},{en:"Total sum|总和"}],answer:"A",id:132,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Variance measures|方差衡量",options:[{en:"Central tendency|集中趋势"},{en:"Dispersion|离散程度"},{en:"Frequency|频数"},{en:"Proportion|比例"}],answer:"B",id:133,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Standard deviation is|标准差是",options:[{en:"Square of variance|方差平方"},{en:"Square root of variance|方差平方根"},{en:"Same as variance|同方差"},{en:"Range|极差"}],answer:"B",id:134,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Which measure is most affected by outliers?|哪个指标受异常值影响最大？",options:[{en:"Median|中位数"},{en:"Mean|均值"},{en:"Mode|众数"},{en:"Range|极差"}],answer:"B",id:135,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Which measure is not affected by outliers?|哪个指标不受异常值影响？",options:[{en:"Mean|均值"},{en:"Median|中位数"},{en:"Variance|方差"},{en:"Range|极差"}],answer:"B",id:136,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is correlation?|什么是相关？",options:[{en:"Causation|因果"},{en:"Relationship between variables|变量间关系"},{en:"Average|均值"},{en:"Variance|方差"}],answer:"B",id:137,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Positive correlation means|正相关意味着",options:[{en:"Both decrease|都下降"},{en:"Both increase|都上升"},{en:"No relation|无关系"},{en:"Inverse|反向"}],answer:"B",id:138,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Negative correlation means|负相关意味着",options:[{en:"Both increase|都上升"},{en:"Inverse relation|反向关系"},{en:"No relation|无关系"},{en:"Same direction|同方向"}],answer:"B",id:139,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Zero correlation means|零相关意味着",options:[{en:"Strong relation|强关系"},{en:"No linear relation|无线性关系"},{en:"Perfect relation|完全关系"},{en:"Inverse relation|反向关系"}],answer:"B",id:140,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a scatter plot?|什么是散点图？",options:[{en:"For categories|分类用"},{en:"For correlation|相关用"},{en:"For proportions|比例用"},{en:"For time|时间用"}],answer:"B",id:141,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is probability?|什么是概率？",options:[{en:"Certainty|确定性"},{en:"Chance of an event|事件发生可能性"},{en:"Frequency|频数"},{en:"Average|均值"}],answer:"B",id:142,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Probability ranges from|概率范围是",options:[{en:"-1 to 1|-1到1"},{en:"0 to 1|0到1"},{en:"1 to 10|1到10"},{en:"-infinity to +infinity|负无穷到正无穷"}],answer:"B",id:143,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Certain event has probability|必然事件概率是",options:[{en:"0|0"},{en:"1|1"},{en:"0.5|0.5"},{en:"-1|-1"}],answer:"B",id:144,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Impossible event has probability|不可能事件概率是",options:[{en:"1|1"},{en:"0|0"},{en:"0.5|0.5"},{en:"-1|-1"}],answer:"B",id:145,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a random sample?|什么是随机样本？",options:[{en:"Chosen by choice|选择选取"},{en:"Equal chance|等概率选取"},{en:"Biased|有偏"},{en:"Convenient|方便"}],answer:"B",id:146,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a biased sample?|什么是有偏样本？",options:[{en:"Random|随机"},{en:"Unrepresentative|不具代表性"},{en:"Representative|具代表性"},{en:"Large|大样本"}],answer:"B",id:147,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Sample size means|样本量意味着",options:[{en:"Population size|总体量"},{en:"Number of sample units|样本单位数"},{en:"Frequency|频数"},{en:"Percentage|百分比"}],answer:"B",id:148,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is sampling error?|什么是抽样误差？",options:[{en:"Mistake in data|数据错误"},{en:"Difference between sample and population|样本与总体差异"},{en:"Human error|人为错误"},{en:"Equipment error|设备错误"}],answer:"B",id:149,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a frequency table?|什么是频数表？",options:[{en:"Graph|图表"},{en:"Data summary by frequency|按频数汇总数据"},{en:"Formula|公式"},{en:"Sample|样本"}],answer:"B",id:150,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is cumulative frequency?|什么是累积频数？",options:[{en:"Single frequency|单个频数"},{en:"Running total|累加和"},{en:"Relative frequency|相对频数"},{en:"Percentage|百分比"}],answer:"B",id:151,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a percentile?|什么是百分位数？",options:[{en:"Average|均值"},{en:"Percentage rank|百分比排名"},{en:"Range|极差"},{en:"Variance|方差"}],answer:"B",id:152,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Quartiles divide data into|四分位数将数据分为",options:[{en:"2 parts|2部分"},{en:"4 parts|4部分"},{en:"3 parts|3部分"},{en:"10 parts|10部分"}],answer:"B",id:153,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Interquartile range is|四分位距是",options:[{en:"Q3-Q1|第三四分位数-第一四分位数"},{en:"Max-Min|最大-最小"},{en:"Q2-Q1|中位数-第一四分位数"},{en:"Q3-Q2|第三四分位数-中位数"}],answer:"A",id:154,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a box plot?|什么是箱线图？",options:[{en:"For categories|分类用"},{en:"For dispersion|离散程度用"},{en:"For proportions|比例用"},{en:"For time|时间用"}],answer:"B",id:155,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Outlier is|异常值是",options:[{en:"Typical value|典型值"},{en:"Extreme value|极端值"},{en:"Mean|均值"},{en:"Median|中位数"}],answer:"B",id:156,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is descriptive statistics?|什么是描述统计？",options:[{en:"Predict data|预测数据"},{en:"Describe data|描述数据"},{en:"Test hypothesis|检验假设"},{en:"Estimate|估计"}],answer:"B",id:157,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is inferential statistics?|什么是推断统计？",options:[{en:"Describe data|描述数据"},{en:"Make inferences|推断总体"},{en:"Graph data|绘制图表"},{en:"Summarize data|汇总数据"}],answer:"B",id:158,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Hypothesis is|假设是",options:[{en:"Fact|事实"},{en:"Statement to test|待检验陈述"},{en:"Data|数据"},{en:"Graph|图表"}],answer:"B",id:159,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Null hypothesis is|原假设是",options:[{en:"Research hypothesis|研究假设"},{en:"Statement of no effect|无效应陈述"},{en:"Alternative|备择"},{en:"Claim|主张"}],answer:"B",id:160,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Alternative hypothesis is|备择假设是",options:[{en:"No effect|无效应"},{en:"Research hypothesis|研究假设"},{en:"Null|原假设"},{en:"Fact|事实"}],answer:"B",id:161,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a test statistic?|什么是检验统计量？",options:[{en:"Population value|总体值"},{en:"Sample value for test|检验用样本值"},{en:"Parameter|参数"},{en:"Constant|常数"}],answer:"B",id:162,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"P-value means|P值意味着",options:[{en:"Certainty|确定性"},{en:"Probability of result|结果概率"},{en:"Mean|均值"},{en:"Variance|方差"}],answer:"B",id:163,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Significance level is|显著性水平是",options:[{en:"0.5|0.5"},{en:"0.05|0.05"},{en:"0.1|0.1"},{en:"1|1"}],answer:"B",id:164,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Reject null hypothesis if|拒绝原假设如果",options:[{en:"P-value > alpha|P值>显著性水平"},{en:"P-value < alpha|P值<显著性水平"},{en:"P-value = 1|P值=1"},{en:"P-value = 0|P值=0"}],answer:"B",id:165,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a type I error?|什么是第一类错误？",options:[{en:"Accept true null|接受真原假设"},{en:"Reject true null|拒绝真原假设"},{en:"Accept false null|接受假原假设"},{en:"Reject false null|拒绝假原假设"}],answer:"B",id:166,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a type II error?|什么是第二类错误？",options:[{en:"Reject true null|拒绝真原假设"},{en:"Accept false null|接受假原假设"},{en:"Reject false null|拒绝假原假设"},{en:"Accept true null|接受真原假设"}],answer:"B",id:167,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is confidence level?|什么是置信水平？",options:[{en:"Error rate|错误率"},{en:"Certainty level|确定性水平"},{en:"Significance|显著性"},{en:"P-value|P值"}],answer:"B",id:168,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Confidence interval is|置信区间是",options:[{en:"Single value|单个值"},{en:"Range of values|取值范围"},{en:"Mean|均值"},{en:"Median|中位数"}],answer:"B",id:169,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is regression?|什么是回归？",options:[{en:"Correlation|相关"},{en:"Prediction equation|预测方程"},{en:"Frequency|频数"},{en:"Variance|方差"}],answer:"B",id:170,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Regression line is|回归线是",options:[{en:"Scatter plot|散点图"},{en:"Best fit line|最佳拟合线"},{en:"Bar chart|柱状图"},{en:"Pie chart|饼图"}],answer:"B",id:171,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Slope of regression line is|回归线斜率是",options:[{en:"Intercept|截距"},{en:"Change in Y per X|X每变1单位Y的变化"},{en:"Mean|均值"},{en:"Correlation|相关系数"}],answer:"B",id:172,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Intercept of regression line is|回归线截距是",options:[{en:"Slope|斜率"},{en:"Value when X=0|X=0时的值"},{en:"Mean|均值"},{en:"Correlation|相关系数"}],answer:"B",id:173,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is independent variable?|什么是自变量？",options:[{en:"Outcome|结果"},{en:"Predictor|预测变量"},{en:"Dependent|因变量"},{en:"Response|响应变量"}],answer:"B",id:174,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is dependent variable?|什么是因变量？",options:[{en:"Predictor|预测变量"},{en:"Outcome|结果变量"},{en:"Independent|自变量"},{en:"Explanatory|解释变量"}],answer:"B",id:175,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a normal distribution?|什么是正态分布？",options:[{en:"Skewed|偏态"},{en:"Bell-shaped|钟形"},{en:"Uniform|均匀"},{en:"Binomial|二项"}],answer:"B",id:176,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Normal distribution is|正态分布是",options:[{en:"Skewed left|左偏"},{en:"Symmetric|对称"},{en:"Skewed right|右偏"},{en:"Uniform|均匀"}],answer:"B",id:177,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Standard normal distribution has|标准正态分布有",options:[{en:"Mean=1, SD=0|均值=1，标准差=0"},{en:"Mean=0, SD=1|均值=0，标准差=1"},{en:"Mean=5, SD=1|均值=5，标准差=1"},{en:"Mean=0, SD=0|均值=0，标准差=0"}],answer:"B",id:178,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Z-score measures|Z分数衡量",options:[{en:"Raw score|原始分数"},{en:"Standard deviation from mean|距均值的标准差数"},{en:"Percentile|百分位数"},{en:"Range|极差"}],answer:"B",id:179,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Binomial distribution has|二项分布有",options:[{en:"Continuous data|连续数据"},{en:"Two outcomes|两个结果"},{en:"Infinite trials|无限试验"},{en:"Normal shape|正态形状"}],answer:"B",id:180,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a trial?|什么是试验？",options:[{en:"Outcome|结果"},{en:"Single experiment|单次实验"},{en:"Probability|概率"},{en:"Frequency|频数"}],answer:"B",id:181,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"What is a sample space?|什么是样本空间？",options:[{en:"Single event|单个事件"},{en:"All possible outcomes|所有可能结果"},{en:"Probability|概率"},{en:"Frequency|频数"}],answer:"B",id:182,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Mutually exclusive events|互斥事件",options:[{en:"Occur together|同时发生"},{en:"Cannot occur together|不同时发生"},{en:"Independent|独立"},{en:"Dependent|相关"}],answer:"B",id:183,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0},
+            {en:"Independent events|独立事件",options:[{en:"Affect each other|相互影响"},{en:"Do not affect each other|互不影响"},{en:"Mutually exclusive|互斥"},{en:"Dependent|相关"}],answer:"B",id:184,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0}
+        ],
+        "第2章": [{en:"Data is|数据是？",options:[{en:"information|信息"},{en:"facts|事实"},{en:"numbers|数字"},{en:"words|文字"}],answer:"B",id:201,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0}]
+    };
+
+    // 全局变量
+    let questionBank = JSON.parse(localStorage.getItem('customBank')) || defaultBank;
+    let wrongQuestions = JSON.parse(localStorage.getItem('wrongQuestions')) || [];
+    let currentChapter = "";
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let wrongCurrentQuestions = [];
+    let wrongCurrentIndex = 0;
+    const optLetters = ['A', 'B', 'C', 'D'];
+
+    // 初始化
+    function initAll() {
+        initSiteTitle();
+        initSectionList();
+        initDeleteSelect();
+        bindKeyAndTouch();
+        syncWrongQuestions();
+    }
+
+    // 页面切换
+    function showView(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+    function backToHome() {
+        showView('homeView');
+        saveAllProgress();
+    }
+
+    // 同步错题库（实时更新）
+    function syncWrongQuestions() {
+        const allQuestions = [];
+        Object.values(questionBank).forEach(chapter => allQuestions.push(...chapter));
+        wrongQuestions = allQuestions.filter(q => q.wrongCount > 0 && q.correctCountInWrong < 3);
+        localStorage.setItem('wrongQuestions', JSON.stringify(wrongQuestions));
+        localStorage.setItem('customBank', JSON.stringify(questionBank));
+        updateWrongCountDisplay();
+    }
+
+    // 更新首页错题数显示
+    function updateWrongCountDisplay() {
+        const badge = document.getElementById('wrongCountBadge');
+        if (!badge) return;
+        const count = wrongQuestions.length;
+        if (count > 0) {
+            badge.style.display = 'inline-block';
+            badge.innerText = count + ' 道错题';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    // 开始常规刷题
+    function startPractice(chapter) {
+        currentChapter = chapter;
+        currentQuestions = JSON.parse(JSON.stringify(questionBank[chapter]));
+        currentIndex = 0;
+        document.getElementById('chapterTitle').innerText = `${chapter} 刷题`;
+        renderQuestion();
+        showView('practiceView');
+    }
+
+    // 开始错题库刷题
+    function startWrongPractice() {
+        syncWrongQuestions();
+        if(wrongQuestions.length === 0){
+            alert('🎉 恭喜！错题库为空');
+            return;
+        }
+        wrongCurrentQuestions = JSON.parse(JSON.stringify(wrongQuestions));
+        wrongCurrentQuestions.forEach(q => { q.userAnswer = ""; q.isCorrect = null; });
+        wrongCurrentIndex = 0;
+        renderWrongQuestion();
+        showView('wrongPracticeView');
+    }
+
+    // 渲染常规题目
+    function renderQuestion() {
+        if (currentIndex >= currentQuestions.length) {
+            alert('✅ 本章刷题完成！');
+            backToHome();
+            return;
+        }
+        const q = currentQuestions[currentIndex];
+        const [en, cn] = q.en.split('|');
+        document.getElementById('progress').innerText = `第${currentIndex+1}题 | ${currentIndex+1}/${currentQuestions.length}`;
+        document.getElementById('qEn').innerText = en;
+        document.getElementById('qCn').innerText = cn;
+        document.getElementById('correctAns').innerText = q.answer;
+        document.getElementById('answerFooter').style.display = q.userAnswer ? 'flex' : 'none';
+
+        const box = document.getElementById('optionsBox');
+        box.innerHTML = '';
+
+        q.options.forEach((item, i) => {
+            const [optEn, optCn] = item.en.split('|');
+            const div = document.createElement('div');
+            div.className = 'option-item option-click';
+            div.dataset.ans = optLetters[i];
+            
+            const optCnEl = document.createElement('div');
+            optCnEl.className = 'opt-cn';
+            optCnEl.innerText = optCn;
+            optCnEl.onclick = e => { e.stopPropagation(); optCnEl.classList.toggle('active'); };
+
+            div.innerHTML = `<div class="opt-en">${optLetters[i]}. ${optEn}</div>`;
+            div.appendChild(optCnEl);
+            div.onclick = () => selectNormalOption(div, q);
+            box.appendChild(div);
+        });
+
+        if (q.userAnswer) {
+            const allOpts = document.querySelectorAll('#optionsBox .option-item');
+            allOpts.forEach(opt => {
+                if (opt.dataset.ans === q.userAnswer) opt.classList.add('option-selected');
+                if (opt.dataset.ans === q.answer) opt.classList.add('option-correct');
+                if (q.userAnswer === opt.dataset.ans && q.userAnswer !== q.answer) opt.classList.add('option-wrong');
+            });
+        }
+    }
+
+    // 渲染错题库题目
+    function renderWrongQuestion() {
+        if (wrongCurrentIndex >= wrongCurrentQuestions.length) {
+            syncWrongQuestions();
+            alert('✅ 本轮错题刷题完成！');
+            backToHome();
+            return;
+        }
+        const q = wrongCurrentQuestions[wrongCurrentIndex];
+        const [en, cn] = q.en.split('|');
+        document.getElementById('wrongProgress').innerText = `第${wrongCurrentIndex+1}题 | ${wrongCurrentIndex+1}/${wrongCurrentQuestions.length}`;
+        document.getElementById('wrongQEn').innerText = en;
+        document.getElementById('wrongQCn').innerText = cn;
+        document.getElementById('wrongCorrectAns').innerText = q.answer;
+        document.getElementById('correctCountTip').innerText = `当前答对次数：${q.correctCountInWrong}/3`;
+        document.getElementById('wrongAnswerFooter').style.display = q.userAnswer ? 'flex' : 'none';
+
+        const box = document.getElementById('wrongOptionsBox');
+        box.innerHTML = '';
+
+        q.options.forEach((item, i) => {
+            const [optEn, optCn] = item.en.split('|');
+            const div = document.createElement('div');
+            div.className = 'option-item option-click';
+            div.dataset.ans = optLetters[i];
+            
+            const optCnEl = document.createElement('div');
+            optCnEl.className = 'opt-cn';
+            optCnEl.innerText = optCn;
+            optCnEl.onclick = e => { e.stopPropagation(); optCnEl.classList.toggle('active'); };
+
+            div.innerHTML = `<div class="opt-en">${optLetters[i]}. ${optEn}</div>`;
+            div.appendChild(optCnEl);
+            div.onclick = () => selectWrongOption(div, q);
+            box.appendChild(div);
+        });
+
+        if (q.userAnswer) {
+            document.querySelectorAll('#wrongOptionsBox .option-item').forEach(opt => {
+                if (opt.dataset.ans === q.userAnswer) opt.classList.add('option-selected');
+                if (opt.dataset.ans === q.answer) opt.classList.add('option-correct');
+                if (q.userAnswer === opt.dataset.ans && q.userAnswer !== q.answer) opt.classList.add('option-wrong');
+            });
+        }
+    }
+
+    // 常规刷题选择选项（实时加入错题库）
+    function selectNormalOption(optionEl, q) {
+        if (q.userAnswer) return;
+        const userAns = optionEl.dataset.ans;
+        q.userAnswer = userAns;
+        q.isCorrect = userAns === q.answer;
+
+        optionEl.classList.add('option-selected');
+        document.querySelectorAll('#optionsBox .option-item').forEach(opt => {
+            if (opt.dataset.ans === q.answer) opt.classList.add('option-correct');
+            if (userAns === opt.dataset.ans && userAns !== q.answer) opt.classList.add('option-wrong');
+        });
+
+        document.getElementById('answerFooter').style.display = 'flex';
+
+        // 实时错题库机制：做错立即入库
+        if (!q.isCorrect) {
+            q.wrongCount += 1;
+            q.correctCountInWrong = 0;
+        }
+        saveAllProgress();
+    }
+
+    // 错题库刷题选择选项（答对3次移除）
+    function selectWrongOption(optionEl, q) {
+        if (q.userAnswer) return;
+        const userAns = optionEl.dataset.ans;
+        q.userAnswer = userAns;
+        q.isCorrect = userAns === q.answer;
+
+        optionEl.classList.add('option-selected');
+        document.querySelectorAll('#wrongOptionsBox .option-item').forEach(opt => {
+            if (opt.dataset.ans === q.answer) opt.classList.add('option-correct');
+            if (userAns === opt.dataset.ans && userAns !== q.answer) opt.classList.add('option-wrong');
+        });
+
+        document.getElementById('wrongAnswerFooter').style.display = 'flex';
+
+        // 答对计数，满3次移除
+        if(q.isCorrect){
+            q.correctCountInWrong += 1;
+            document.getElementById('correctCountTip').innerText = `当前答对次数：${q.correctCountInWrong}/3`;
+            
+            // 更新原题库数据
+            const target = findQuestionById(q.id);
+            if(target) target.correctCountInWrong = q.correctCountInWrong;
+            
+            if(q.correctCountInWrong >=3){
+                setTimeout(()=>{
+                    alert('✅ 已答对3次，该题从错题库移除！');
+                    syncWrongQuestions();
+                    changeWrongQuestion(1);
+                },800);
+            }
+        }
+        saveAllProgress();
+    }
+
+    // 根据ID查找题目
+    function findQuestionById(id){
+        for(let chapter in questionBank){
+            const q = questionBank[chapter].find(item => item.id == id);
+            if(q) return q;
+        }
+        return null;
+    }
+
+    // 绑定方向键+滑动切换
+    function bindKeyAndTouch() {
+        document.addEventListener('keydown', e => {
+            if (document.getElementById('practiceView').classList.contains('active')) {
+                if (e.key === 'ArrowLeft') changeQuestion(-1);
+                if (e.key === 'ArrowRight') changeQuestion(1);
+            }
+            if (document.getElementById('wrongPracticeView').classList.contains('active')) {
+                if (e.key === 'ArrowLeft') changeWrongQuestion(-1);
+                if (e.key === 'ArrowRight') changeWrongQuestion(1);
+            }
+        });
+
+        let touchStartX = 0;
+        document.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX);
+        document.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].screenX;
+            if (document.getElementById('practiceView').classList.contains('active')) {
+                if (touchStartX - touchEndX > 50) changeQuestion(1);
+                if (touchEndX - touchStartX > 50) changeQuestion(-1);
+            }
+            if (document.getElementById('wrongPracticeView').classList.contains('active')) {
+                if (touchStartX - touchEndX > 50) changeWrongQuestion(1);
+                if (touchEndX - touchStartX > 50) changeWrongQuestion(-1);
+            }
+        });
+    }
+
+    // 常规题目切换
+    function changeQuestion(direction) {
+        const newIndex = currentIndex + direction;
+        if (newIndex < 0 || newIndex >= currentQuestions.length) return;
+        currentIndex = newIndex;
+        renderQuestion();
+    }
+
+    // 错题题目切换
+    function changeWrongQuestion(direction) {
+        const newIndex = wrongCurrentIndex + direction;
+        if (newIndex < 0 || newIndex >= wrongCurrentQuestions.length) return;
+        wrongCurrentIndex = newIndex;
+        renderWrongQuestion();
+    }
+
+    // 缩略图功能
+    function openThumbnail() {
+        const grid = document.getElementById('thumbnailGrid');
+        grid.innerHTML = '';
+        currentQuestions.forEach((q, idx) => {
+            const item = document.createElement('div');
+            item.className = 'thumbnail-item';
+            if (idx === currentIndex) item.classList.add('thumb-current');
+            if (q.isCorrect === null) item.classList.add('thumb-unfinish');
+            else if (q.isCorrect) item.classList.add('thumb-correct');
+            else item.classList.add('thumb-wrong');
+            item.innerText = idx + 1;
+            item.onclick = () => { currentIndex = idx; renderQuestion(); closeThumbnail(); };
+            grid.appendChild(item);
+        });
+        document.getElementById('thumbnailModal').classList.add('active');
+    }
+    function closeThumbnail() {
+        document.getElementById('thumbnailModal').classList.remove('active');
+    }
+
+    // 数据保存
+    function saveAllProgress() {
+        if(currentChapter) questionBank[currentChapter] = currentQuestions;
+        localStorage.setItem('customBank', JSON.stringify(questionBank));
+        syncWrongQuestions();
+    }
+
+    // 清空做题记录（不影响错题库）
+    function clearPracticeRecord() {
+        if (!currentChapter || !currentQuestions.length) return;
+        if (!confirm('确定要清空本章所有做题记录吗？\n（错题库中的题目不会被移除）')) return;
+        currentQuestions.forEach(q => {
+            q.userAnswer = '';
+            q.isCorrect = null;
+        });
+        currentIndex = 0;
+        saveAllProgress();
+        renderQuestion();
+    }
+
+    // 基础功能
+    // 初始化首页可编辑标题
+    function initSiteTitle() {
+        const h1 = document.getElementById('siteTitle');
+        const saved = localStorage.getItem('siteTitle');
+        if (saved) {
+            h1.innerText = saved;
+            document.getElementById('pageTitle').innerText = saved;
+        }
+        h1.addEventListener('dblclick', () => {
+            h1.contentEditable = 'true';
+            h1.focus();
+            const range = document.createRange();
+            range.selectNodeContents(h1);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        });
+        h1.addEventListener('blur', () => {
+            h1.contentEditable = 'false';
+            const text = h1.innerText.trim();
+            if (text) {
+                localStorage.setItem('siteTitle', text);
+                document.getElementById('pageTitle').innerText = text;
+            }
+        });
+        h1.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                h1.blur();
+            }
+        });
+    }
+
+    function initSectionList() {
+        const container = document.getElementById('sectionContainer');
+        container.innerHTML = '';
+        const chapters = Object.keys(questionBank);
+        chapters.forEach((chapter, index) => {
+            const item = document.createElement('div');
+            item.className = 'chapter-item';
+            item.draggable = true;
+            item.dataset.chapter = chapter;
+            item.dataset.index = index;
+
+            const handle = document.createElement('span');
+            handle.className = 'drag-handle';
+            handle.innerText = '\u2804\u2804';
+            item.appendChild(handle);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-primary';
+            btn.innerText = chapter;
+            btn.onclick = (e) => { e.stopPropagation(); startPractice(chapter); };
+            item.appendChild(btn);
+
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragend', handleDragEnd);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('dragleave', handleDragLeave);
+            item.addEventListener('drop', handleChapterDrop);
+
+            container.appendChild(item);
+        });
+    }
+
+    function getChapterKeys() {
+        return Object.keys(questionBank);
+    }
+
+    let draggedChapter = null;
+    function handleDragStart(e) {
+        draggedChapter = this.dataset.chapter;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.dataset.chapter);
+    }
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        document.querySelectorAll('.chapter-item').forEach(el => el.classList.remove('drag-over'));
+        draggedChapter = null;
+    }
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        this.classList.add('drag-over');
+    }
+    function handleDragLeave(e) {
+        this.classList.remove('drag-over');
+    }
+    function handleChapterDrop(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        const fromChapter = e.dataTransfer.getData('text/plain');
+        const toChapter = this.dataset.chapter;
+        if (fromChapter && fromChapter !== toChapter) {
+            reorderChapters(fromChapter, toChapter);
+        }
+    }
+
+    function reorderChapters(fromKey, toKey) {
+        const keys = Object.keys(questionBank);
+        const fromIdx = keys.indexOf(fromKey);
+        const toIdx = keys.indexOf(toKey);
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+        keys.splice(fromIdx, 1);
+        keys.splice(toIdx, 0, fromKey);
+        const newBank = {};
+        keys.forEach(k => { newBank[k] = questionBank[k]; });
+        questionBank = newBank;
+        localStorage.setItem('customBank', JSON.stringify(questionBank));
+        initSectionList();
+        initDeleteSelect();
+    }
+
+    function initDeleteSelect() {
+        const select = document.getElementById('deleteSelect');
+        select.innerHTML = '<option value="">请选择要删除的章节</option>';
+        Object.keys(questionBank).forEach(chapter => {
+            const option = document.createElement('option');
+            option.value = chapter;
+            option.innerText = chapter;
+            select.appendChild(option);
+        });
+    }
+    function previewDeleteChapter() {
+        const chapter = document.getElementById('deleteSelect').value;
+        const preview = document.getElementById('deletePreview');
+        preview.innerText = chapter ? `✅ 章节：${chapter} | 题目：${questionBank[chapter].length}道` : "预览内容：请选择章节";
+    }
+    function deleteChapter() {
+        const chapter = document.getElementById('deleteSelect').value;
+        if (!chapter || !confirm(`⚠️ 确认删除【${chapter}】？`)) return;
+        delete questionBank[chapter];
+        if (currentChapter === chapter) { currentChapter = ""; currentQuestions = []; }
+        saveAllProgress();
+        initAll();
+        alert(`✅ 删除成功！`);
+    }
+
+    // 文件导入
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const chapterName = file.name.replace(/\.[^/.]+$/, '');
+        const tip = document.getElementById('importTip');
+        let text = "";
+        try {
+            text = file.name.endsWith('.txt') ? await readTxt(file) : await readDocx(file);
+            const questions = parseTextToQuestions(text);
+            questionBank[chapterName] = questions;
+            saveAllProgress();
+            initAll();
+            tip.innerText = `✅ 导入成功：${chapterName}（${questions.length}道题）`;
+        } catch (err) {
+            tip.innerText = `❌ 导入失败：${err.message}`;
+        }
+    });
+    const readTxt = file => new Promise(resolve => { const r = new FileReader(); r.readAsText(file, 'UTF-8'); r.onload = () => resolve(r.result); });
+    const readDocx = async file => { const a = await file.arrayBuffer(); const d = await window.docx.Packer.toJson(a); return d.value; };
+    function parseTextToQuestions(text) {
+        const lines = text.split('\n').map(l=>l.trim()).filter(l=>l);
+        const qs = [], temp = {};
+        let id = Date.now();
+        lines.forEach(line => {
+            if (line.startsWith('【题目】')) { if(temp.en) qs.push({...temp,id:id++,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0}); temp.en = line.replace('【题目】',''), temp.options=[], temp.answer=''; }
+            if (line.startsWith('【选项')) temp.options.push({en:line.split('】')[1]});
+            if (line.startsWith('【答案】')) temp.answer = line.replace('【答案】','').trim();
+        });
+        if(temp.en) qs.push({...temp,id:id++,userAnswer:"",isCorrect:null,wrongCount:0,correctCountInWrong:0});
+        return qs;
+    }
+
+    // 一键切换中文
+    document.getElementById('wrongQCn').onclick = () => document.getElementById('wrongQCn').classList.toggle('active');
+    document.getElementById('toggleWrongAllBtn').onclick = () => {
+        [document.getElementById('wrongQCn'), ...document.querySelectorAll('#wrongOptionsBox .opt-cn')].forEach(el => el.classList.toggle('active'));
+    };
+
+    document.getElementById('toggleAllBtn').onclick = () => {
+        [document.getElementById('qCn'), ...document.querySelectorAll('#optionsBox .opt-cn')].forEach(el => el.classList.toggle('active'));
+    };
+    document.getElementById('qCn').onclick = () => document.getElementById('qCn').classList.toggle('active');
+
+    initAll();
+</script>
+</body>
+</html>
